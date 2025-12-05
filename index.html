@@ -5,16 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big Time Clock</title>
 
-<!-- MODAK Typeface -->
 <link href="https://fonts.googleapis.com/css2?family=Modak&display=swap" rel="stylesheet">
 
-<!-- PWA Manifest -->
-<link rel="manifest" href="manifest.json">
+<!-- IMPORTANT: GitHub Pages requires full path -->
+<link rel="manifest" href="/screenshots-for-pw-cl-cloc/manifest.json">
 
-<!-- iOS Support -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="/screenshots-for-pw-cl-cloc/icon-192.png">
 
 <style>
     body {
@@ -50,7 +48,6 @@
         100% { opacity: 1; transform: scale(1); }
     }
 
-    /* Ghost Button */
     #ghost-btn {
         position: fixed;
         bottom: 20px;
@@ -64,7 +61,6 @@
         z-index: 20;
     }
 
-    /* Color Menu */
     #color-menu {
         position: fixed;
         bottom: 60px;
@@ -98,19 +94,6 @@
         pointer-events: auto;
     }
 
-    /* Laptop visibility */
-    @media (min-width: 900px) {
-        #ghost-btn {
-            opacity: 0.45;
-            width: 26px;
-            height: 26px;
-        }
-        #ghost-btn:hover {
-            opacity: 0.9;
-        }
-    }
-
-    /* Invisible TAP ZONE for time freeze */
     #freeze-zone {
         position: fixed;
         bottom: 0;
@@ -118,29 +101,22 @@
         width: 120px;
         height: 120px;
         z-index: 40;
-        /* fully invisible */
         background: transparent;
     }
 </style>
-
 </head>
 
 <body>
 
-<!-- CLOCK -->
 <div class="clock">
     <span id="hours">00</span>:
     <span id="minutes">00</span>:
     <span id="seconds" class="seconds">00</span>
 </div>
 
-<!-- Ghost Button -->
 <div id="ghost-btn"></div>
-
-<!-- Invisible tap zone -->
 <div id="freeze-zone"></div>
 
-<!-- Color Picker Menu -->
 <div id="color-menu">
     <div class="color-dot" data-color="#ffffff" data-bg="#000000"></div>
     <div class="color-dot" data-color="#000000" data-bg="#ffffff"></div>
@@ -152,71 +128,51 @@
 </div>
 
 <script>
-// ---------------------------
-// FREEZE CLOCK LOGIC
-// ---------------------------
+// PWA registration for GitHub Pages
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/screenshots-for-pw-cl-cloc/service-worker.js");
+}
+
+// Freeze clock logic
 let frozen = false;
-let frozenTime = null;
 
-function displayTime(timeObj) {
-    let h = String(timeObj.getHours()).padStart(2, '0');
-    let m = String(timeObj.getMinutes()).padStart(2, '0');
-    let s = String(timeObj.getSeconds()).padStart(2, '0');
+function displayTime(t) {
+    hours.textContent = String(t.getHours()).padStart(2, '0');
+    minutes.textContent = String(t.getMinutes()).padStart(2, '0');
+    seconds.textContent = String(t.getSeconds()).padStart(2, '0');
 
-    hours.textContent = h;
-    minutes.textContent = m;
-    seconds.textContent = s;
-
-    // Freeze seconds opacity + stop animate
     seconds.style.animation = frozen ? "none" : "pulse 1s linear infinite";
     seconds.style.opacity = "1";
 }
 
-// LIVE CLOCK DISABLED (we only show manual time)
 setInterval(() => {
-    if (!frozen) {
-        let now = new Date();
-        displayTime(now);
-    }
+    if (!frozen) displayTime(new Date());
 }, 1000);
 
-
-// Tap bottom-left to set freeze time
-document.getElementById("freeze-zone").addEventListener("click", () => {
+freeze-zone.addEventListener("click", () => {
     let input = prompt("Enter time (HH:MM:SS):");
     if (!input || !/^\d\d:\d\d:\d\d$/.test(input)) return;
 
     let [h, m, s] = input.split(":");
-    let custom = new Date();
-    custom.setHours(h, m, s);
+    let t = new Date();
+    t.setHours(h, m, s);
 
     frozen = true;
-    frozenTime = custom;
-    displayTime(custom);
+    displayTime(t);
 });
 
-
-// ---------------------------
-// COLOR PICKER LOGIC (unchanged)
-// ---------------------------
-const ghostBtn = document.getElementById("ghost-btn");
-const colorMenu = document.getElementById("color-menu");
-const colorDots = document.querySelectorAll(".color-dot");
-
-let hideTimer = null;
-
-ghostBtn.addEventListener("click", () => {
-    colorMenu.classList.add("active");
-    if (hideTimer) clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => colorMenu.classList.remove("active"), 5005);
+// Color picker logic
+ghost-btn.addEventListener("click", () => {
+    color-menu.classList.add("active");
+    setTimeout(() => color-menu.classList.remove("active"), 5000);
 });
 
-colorDots.forEach(dot => {
+document.querySelectorAll(".color-dot").forEach(dot => {
     dot.style.background = dot.dataset.color;
     dot.addEventListener("click", () => {
         document.body.style.color = dot.dataset.color;
         document.body.style.background = dot.dataset.bg;
-        colorMenu.classList.remove("active");
+        color-menu.classList.remove("active");
     });
 });
 </script>
