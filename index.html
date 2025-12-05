@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Time Clock</title>
+
+<!-- MODAK Typeface -->
+<link href="https://fonts.googleapis.com/css2?family=Modak&display=swap" rel="stylesheet">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS Support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+    body {
+        margin: 0;
+        height: 100vh;
+        background: black;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Modak', cursive;
+        overflow: hidden;
+        transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    .clock {
+        font-size: 22vw;
+        letter-spacing: -0.05em;
+        display: flex;
+        gap: 0.04em;
+    }
+
+    .seconds {
+        display: inline-block;
+        width: 0.8em;
+        text-align: center;
+        animation: pulse 1s linear infinite;
+    }
+
+    @keyframes pulse {
+        0%   { opacity: 1; transform: scale(1); }
+        60%  { opacity: 0; transform: scale(0.85); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Ghost Button */
+    #ghost-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 22px;
+        height: 22px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 50%;
+        opacity: 0.25;
+        transition: opacity 0.3s;
+        z-index: 20;
+    }
+
+    /* Color Menu */
+    #color-menu {
+        position: fixed;
+        bottom: 60px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.35s ease;
+        z-index: 30;
+    }
+
+    .color-dot {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid rgba(255,255,255,0.4);
+        animation: breathe 2s infinite ease-in-out;
+    }
+
+    @keyframes breathe {
+        0%   { transform: scale(1); opacity: 0.55; }
+        50%  { transform: scale(1.18); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.55; }
+    }
+
+    #color-menu.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Laptop visibility */
+    @media (min-width: 900px) {
+        #ghost-btn {
+            opacity: 0.45;
+            width: 26px;
+            height: 26px;
+        }
+        #ghost-btn:hover {
+            opacity: 0.9;
+        }
+    }
+
+    /* Invisible TAP ZONE for time freeze */
+    #freeze-zone {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 120px;
+        height: 120px;
+        z-index: 40;
+        /* fully invisible */
+        background: transparent;
+    }
+</style>
+
+</head>
+
+<body>
+
+<!-- CLOCK -->
+<div class="clock">
+    <span id="hours">00</span>:
+    <span id="minutes">00</span>:
+    <span id="seconds" class="seconds">00</span>
+</div>
+
+<!-- Ghost Button -->
+<div id="ghost-btn"></div>
+
+<!-- Invisible tap zone -->
+<div id="freeze-zone"></div>
+
+<!-- Color Picker Menu -->
+<div id="color-menu">
+    <div class="color-dot" data-color="#ffffff" data-bg="#000000"></div>
+    <div class="color-dot" data-color="#000000" data-bg="#ffffff"></div>
+    <div class="color-dot" data-color="#00eaff" data-bg="#00141a"></div>
+    <div class="color-dot" data-color="#39ff14" data-bg="#061a00"></div>
+    <div class="color-dot" data-color="#ff0077" data-bg="#1a0010"></div>
+    <div class="color-dot" data-color="#ff9100" data-bg="#1a0d00"></div>
+    <div class="color-dot" data-color="#b400ff" data-bg="#15001a"></div>
+</div>
+
+<script>
+// ---------------------------
+// FREEZE CLOCK LOGIC
+// ---------------------------
+let frozen = false;
+let frozenTime = null;
+
+function displayTime(timeObj) {
+    let h = String(timeObj.getHours()).padStart(2, '0');
+    let m = String(timeObj.getMinutes()).padStart(2, '0');
+    let s = String(timeObj.getSeconds()).padStart(2, '0');
+
+    hours.textContent = h;
+    minutes.textContent = m;
+    seconds.textContent = s;
+
+    // Freeze seconds opacity + stop animate
+    seconds.style.animation = frozen ? "none" : "pulse 1s linear infinite";
+    seconds.style.opacity = "1";
+}
+
+// LIVE CLOCK DISABLED (we only show manual time)
+setInterval(() => {
+    if (!frozen) {
+        let now = new Date();
+        displayTime(now);
+    }
+}, 1000);
+
+
+// Tap bottom-left to set freeze time
+document.getElementById("freeze-zone").addEventListener("click", () => {
+    let input = prompt("Enter time (HH:MM:SS):");
+    if (!input || !/^\d\d:\d\d:\d\d$/.test(input)) return;
+
+    let [h, m, s] = input.split(":");
+    let custom = new Date();
+    custom.setHours(h, m, s);
+
+    frozen = true;
+    frozenTime = custom;
+    displayTime(custom);
+});
+
+
+// ---------------------------
+// COLOR PICKER LOGIC (unchanged)
+// ---------------------------
+const ghostBtn = document.getElementById("ghost-btn");
+const colorMenu = document.getElementById("color-menu");
+const colorDots = document.querySelectorAll(".color-dot");
+
+let hideTimer = null;
+
+ghostBtn.addEventListener("click", () => {
+    colorMenu.classList.add("active");
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => colorMenu.classList.remove("active"), 5005);
+});
+
+colorDots.forEach(dot => {
+    dot.style.background = dot.dataset.color;
+    dot.addEventListener("click", () => {
+        document.body.style.color = dot.dataset.color;
+        document.body.style.background = dot.dataset.bg;
+        colorMenu.classList.remove("active");
+    });
+});
+</script>
+
+</body>
+</html>
